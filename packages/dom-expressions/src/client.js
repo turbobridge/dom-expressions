@@ -114,6 +114,16 @@ export function spread(node, props = {}, isSVG, skipChildren) {
   assign(node, props, isSVG, true, undefined, true);
 }
 
+export function mergeProps(...sources) {
+  const target = {};
+  for (let i = 0; i < sources.length; i++) {
+    let source = sources[i];
+    if (typeof source === "function") source = source();
+    if (source) Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+  }
+  return target;
+}
+
 export function use(fn, element, arg) {
   return untrack(() => fn(element, arg));
 }
