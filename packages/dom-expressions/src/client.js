@@ -256,7 +256,7 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
       parent.appendChild(value);
     } else parent.replaceChild(value, parent.firstChild);
     current = value;
-  } else if ("_DX_DEV_") console.warn(`Unrecognized value. Skipped inserting`, value);
+  } else console.warn(`Unrecognized value. Skipped inserting`, value);
 
   return current;
 }
