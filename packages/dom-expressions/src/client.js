@@ -179,15 +179,7 @@ function assignProp(node, prop, value, prev, isSVG, skipRef) {
     value && node.addEventListener(e, value, true);
   } else if (prop.slice(0, 2) === "on") {
     const name = prop.slice(2).toLowerCase();
-    const delegate = DelegatedEvents.has(name);
-    if (!delegate && prev) {
-      const h = Array.isArray(prev) ? prev[0] : prev;
-      node.removeEventListener(name, h);
-    }
-    if (delegate || value) {
-      addEventListener(node, name, value, delegate);
-      delegate && delegateEvents([name]);
-    }
+    value && addEventListener(node, name, value);
   } else if (prop.slice(0, 5) === "attr:") {
     setAttribute(node, prop.slice(5), value);
   } else if (
