@@ -17,46 +17,6 @@ import {
   mergeProps
 } from "rxcore";
 import reconcileArrays from "./reconcile";
-export {
-  Properties,
-  ChildProperties,
-  getPropAlias,
-  Aliases,
-  DOMElements,
-  SVGElements,
-  SVGNamespace,
-  DelegatedEvents
-} from "./constants";
-
-const $$EVENTS = "_$DX_DELEGATE";
-
-export {
-  effect,
-  memo,
-  untrack,
-  getOwner,
-  createComponent,
-  mergeProps,
-  voidFn as useAssets,
-  voidFn as getAssets,
-  voidFn as Assets,
-  voidFn as generateHydrationScript,
-  voidFn as HydrationScript
-};
-
-export function render(code, element, init, options = {}) {
-  let disposer;
-  root(dispose => {
-    disposer = dispose;
-    element === document
-      ? code()
-      : insert(element, code(), element.firstChild ? null : undefined, init);
-  }, options.owner);
-  return () => {
-    disposer();
-    element.textContent = "";
-  };
-}
 
 export function template(html, isCE, isSVG) {
   let node;
@@ -71,24 +31,6 @@ export function template(html, isCE, isSVG) {
     : () => untrack(() => document.importNode(node || (node = create()), true));
   fn.cloneNode = fn;
   return fn;
-}
-
-export function delegateEvents(eventNames, document = window.document) {
-  const e = document[$$EVENTS] || (document[$$EVENTS] = new Set());
-  for (let i = 0, l = eventNames.length; i < l; i++) {
-    const name = eventNames[i];
-    if (!e.has(name)) {
-      e.add(name);
-      document.addEventListener(name, eventHandler);
-    }
-  }
-}
-
-export function clearDelegatedEvents(document = window.document) {
-  if (document[$$EVENTS]) {
-    for (let name of document[$$EVENTS].keys()) document.removeEventListener(name, eventHandler);
-    delete document[$$EVENTS];
-  }
 }
 
 export function setAttribute(node, name, value) {
@@ -170,21 +112,6 @@ export function spread(node, props = {}, isSVG, skipChildren) {
   return prevProps;
 }
 
-export function dynamicProperty(props, key) {
-  const src = props[key];
-  Object.defineProperty(props, key, {
-    get() {
-      return src();
-    },
-    enumerable: true
-  });
-  return props;
-}
-
-export function innerHTML(parent, content) {
-  !sharedConfig.context && (parent.innerHTML = content);
-}
-
 export function use(fn, element, arg) {
   return untrack(() => fn(element, arg));
 }
@@ -210,79 +137,6 @@ export function assign(node, props, isSVG, skipChildren, prevProps = {}, skipRef
     }
     const value = props[prop];
     prevProps[prop] = assignProp(node, prop, value, prevProps[prop], isSVG, skipRef);
-  }
-}
-
-// Hydrate
-export function hydrate(code, element, options = {}) {
-  sharedConfig.completed = globalThis._$HY.completed;
-  sharedConfig.events = globalThis._$HY.events;
-  sharedConfig.load = globalThis._$HY.load;
-  sharedConfig.gather = root => gatherHydratable(element, root);
-  sharedConfig.registry = new Map();
-  sharedConfig.context = {
-    id: options.renderId || "",
-    count: 0
-  };
-  gatherHydratable(element, options.renderId);
-  const dispose = render(code, element, [...element.childNodes], options);
-  sharedConfig.context = null;
-  return dispose;
-}
-
-export function getNextElement(template) {
-  let node, key;
-  if (!sharedConfig.context || !(node = sharedConfig.registry.get((key = getHydrationKey())))) {
-    if ("_DX_DEV_" && sharedConfig.context)
-      console.warn("Unable to find DOM nodes for hydration key:", key);
-    if ("_DX_DEV_" && !template)
-      throw new Error("Unrecoverable Hydration Mismatch. No template for key: " + key);
-    return template();
-  }
-  if (sharedConfig.completed) sharedConfig.completed.add(node);
-  sharedConfig.registry.delete(key);
-  return node;
-}
-
-export function getNextMatch(el, nodeName) {
-  while (el && el.localName !== nodeName) el = el.nextSibling;
-  return el;
-}
-
-export function getNextMarker(start) {
-  let end = start,
-    count = 0,
-    current = [];
-  if (sharedConfig.context) {
-    while (end) {
-      if (end.nodeType === 8) {
-        const v = end.nodeValue;
-        if (v === "#") count++;
-        else if (v === "/") {
-          if (count === 0) return [end, current];
-          count--;
-        }
-      }
-      current.push(end);
-      end = end.nextSibling;
-    }
-  }
-  return [end, current];
-}
-
-export function runHydrationEvents() {
-  if (sharedConfig.events && !sharedConfig.events.queued) {
-    queueMicrotask(() => {
-      const { completed, events } = sharedConfig;
-      events.queued = false;
-      while (events.length) {
-        const [el, e] = events[0];
-        if (!completed.has(el)) return;
-        eventHandler(e);
-        events.shift();
-      }
-    });
-    sharedConfig.events.queued = true;
   }
 }
 
@@ -345,39 +199,6 @@ function assignProp(node, prop, value, prev, isSVG, skipRef) {
     else setAttribute(node, Aliases[prop] || prop, value);
   }
   return value;
-}
-
-function eventHandler(e) {
-  const key = `$$${e.type}`;
-  let node = (e.composedPath && e.composedPath()[0]) || e.target;
-  // reverse Shadow DOM retargetting
-  if (e.target !== node) {
-    Object.defineProperty(e, "target", {
-      configurable: true,
-      value: node
-    });
-  }
-
-  // simulate currentTarget
-  Object.defineProperty(e, "currentTarget", {
-    configurable: true,
-    get() {
-      return node || document;
-    }
-  });
-
-  // cancel html streaming
-  if (sharedConfig.registry && !sharedConfig.done) sharedConfig.done = _$HY.done = true;
-
-  while (node) {
-    const handler = node[key];
-    if (handler && !node.disabled) {
-      const data = node[`${key}Data`];
-      data !== undefined ? handler.call(node, data, e) : handler.call(node, e);
-      if (e.cancelBubble) return;
-    }
-    node = node._$host || node.parentNode || node.host;
-  }
 }
 
 function insertExpression(parent, value, current, marker, unwrapArray) {
@@ -519,28 +340,3 @@ function cleanChildren(parent, current, marker, replacement) {
   } else parent.insertBefore(node, marker);
   return [node];
 }
-
-function gatherHydratable(element, root) {
-  const templates = element.querySelectorAll(`*[data-hk]`);
-  for (let i = 0; i < templates.length; i++) {
-    const node = templates[i];
-    const key = node.getAttribute("data-hk");
-    if ((!root || key.startsWith(root)) && !sharedConfig.registry.has(key))
-      sharedConfig.registry.set(key, node);
-  }
-}
-
-export function getHydrationKey() {
-  const hydrate = sharedConfig.context;
-  return `${hydrate.id}${hydrate.count++}`;
-}
-
-export function NoHydration(props) {
-  return sharedConfig.context ? undefined : props.children;
-}
-
-export function Hydration(props) {
-  return props.children;
-}
-
-function voidFn() {}
