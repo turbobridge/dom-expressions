@@ -129,8 +129,8 @@ export function use(fn, element, arg) {
 }
 
 export function insert(parent, accessor, marker) {
-  if (typeof accessor !== "function") return insertExpression(parent, accessor, undefined, marker);
-  insertExpression(parent, accessor(), undefined, marker);
+  if (typeof accessor !== "function") return insertExpression(parent, accessor, marker);
+  insertExpression(parent, accessor(), marker);
 }
 
 export function assign(node, props, isSVG, skipChildren, prevProps = {}, skipRef = false) {
@@ -204,70 +204,49 @@ function assignProp(node, prop, value, prev, isSVG, skipRef) {
   return value;
 }
 
-function insertExpression(parent, value, current, marker, unwrapArray) {
-  while (typeof current === "function") current = current();
-  if (value === current) return current;
+function insertExpression(parent, value, marker, unwrapArray) {
   const t = typeof value,
     multi = marker !== undefined;
-  parent = (multi && current[0] && current[0].parentNode) || parent;
 
   if (t === "string" || t === "number") {
     if (t === "number") value = value.toString();
     if (multi) {
-      let node = current[0];
-      if (node && node.nodeType === 3) {
-        node.data = value;
-      } else node = document.createTextNode(value);
-      current = cleanChildren(parent, current, marker, node);
+      const node = document.createTextNode(value);
+      cleanChildren(parent, [], marker, node);
     } else {
-      if (current !== "" && typeof current === "string") {
-        current = parent.firstChild.data = value;
-      } else current = parent.textContent = value;
+      parent.textContent = value;
     }
   } else if (value == null || t === "boolean") {
-    current = cleanChildren(parent, current, marker);
+    cleanChildren(parent, [], marker);
   } else if (t === "function") {
     let v = value();
     while (typeof v === "function") v = v();
-    insertExpression(parent, v, current, marker);
+    insertExpression(parent, v, marker);
     return;
   } else if (Array.isArray(value)) {
     const array = [];
-    const currentArray = current && Array.isArray(current);
-    if (normalizeIncomingArray(array, value, current, unwrapArray)) {
-      insertExpression(parent, array, undefined, marker, true);
+    if (normalizeIncomingArray(array, value, unwrapArray)) {
+      insertExpression(parent, array, marker, true);
       return;
     }
     if (array.length === 0) {
-      current = cleanChildren(parent, current, marker);
-      if (multi) return current;
-    } else if (currentArray) {
-      if (current.length === 0) {
-        appendNodes(parent, array, marker);
-      } else reconcileArrays(parent, current, array);
+      cleanChildren(parent, [], marker);
+      if (multi) return;
     } else {
-      current && cleanChildren(parent);
-      appendNodes(parent, array);
+      appendNodes(parent, array, marker);
     }
-    current = array;
   } else if (value instanceof Node) {
-    if (Array.isArray(current)) {
-      if (multi) return (current = cleanChildren(parent, current, marker, value));
-      cleanChildren(parent, current, null, value);
-    } else if (current == null || current === "" || !parent.firstChild) {
-      parent.appendChild(value);
-    } else parent.replaceChild(value, parent.firstChild);
-    current = value;
+    if (multi)
+      cleanChildren(parent, [], marker, value);
+    else
+      cleanChildren(parent, [], null, value);
   } else console.warn(`Unrecognized value. Skipped inserting`, value);
-
-  return current;
 }
 
-function normalizeIncomingArray(normalized, array, current, unwrap) {
+function normalizeIncomingArray(normalized, array, unwrap) {
   let dynamic = false;
   for (let i = 0, len = array.length; i < len; i++) {
     let item = array[i],
-      prev = current && current[i],
       t;
     if (item instanceof Node) {
       normalized.push(item);
@@ -275,15 +254,14 @@ function normalizeIncomingArray(normalized, array, current, unwrap) {
       // matches null, undefined, true or false
       // skip
     } else if (Array.isArray(item)) {
-      dynamic = normalizeIncomingArray(normalized, item, prev) || dynamic;
+      dynamic = normalizeIncomingArray(normalized, item) || dynamic;
     } else if ((t = typeof item) === "function") {
       if (unwrap) {
         while (typeof item === "function") item = item();
         dynamic =
           normalizeIncomingArray(
             normalized,
-            Array.isArray(item) ? item : [item],
-            Array.isArray(prev) ? prev : [prev]
+            Array.isArray(item) ? item : [item]
           ) || dynamic;
       } else {
         normalized.push(item);
@@ -292,10 +270,7 @@ function normalizeIncomingArray(normalized, array, current, unwrap) {
     } else {
       // NOTE: is String better than `item + ''`, ``${item}``, `item.toString()` and `item.valueOf()`?
       const value = String(item);
-      if (prev && prev.nodeType === 3) {
-        prev.data = value;
-        normalized.push(prev);
-      } else normalized.push(document.createTextNode(value));
+      normalized.push(document.createTextNode(value));
     }
   }
   return dynamic;
