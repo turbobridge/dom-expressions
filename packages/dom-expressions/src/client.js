@@ -103,23 +103,24 @@ export function style(node, value, prev) {
 }
 
 export function spread(node, props = {}, isSVG, skipChildren) {
-  const prevProps = {};
-  if (!skipChildren) {
-    effect(() => (prevProps.children = insertExpression(node, props.children, prevProps.children)));
+  if (!skipChildren && "children" in props) {
+    // note: ("children" in props) expression intentionally left in
+    // this expression was removed in commit 8330127 so that children
+    // were tracked with effect(). it has been added back as an
+    // optimization
+    insertExpression(node, props.children);
   }
-  effect(() => props.ref && props.ref(node));
-  effect(() => assign(node, props, isSVG, true, prevProps, true));
-  return prevProps;
+  props.ref && props.ref(node);
+  assign(node, props, isSVG, true, undefined, true);
 }
 
 export function use(fn, element, arg) {
   return untrack(() => fn(element, arg));
 }
 
-export function insert(parent, accessor, marker, initial) {
-  if (marker !== undefined && !initial) initial = [];
-  if (typeof accessor !== "function") return insertExpression(parent, accessor, initial, marker);
-  effect(current => insertExpression(parent, accessor(), current, marker), initial);
+export function insert(parent, accessor, marker) {
+  if (typeof accessor !== "function") return insertExpression(parent, accessor, undefined, marker);
+  insertExpression(parent, accessor(), undefined, marker);
 }
 
 export function assign(node, props, isSVG, skipChildren, prevProps = {}, skipRef = false) {
@@ -224,18 +225,16 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
   } else if (value == null || t === "boolean") {
     current = cleanChildren(parent, current, marker);
   } else if (t === "function") {
-    effect(() => {
-      let v = value();
-      while (typeof v === "function") v = v();
-      current = insertExpression(parent, v, current, marker);
-    });
-    return () => current;
+    let v = value();
+    while (typeof v === "function") v = v();
+    insertExpression(parent, v, current, marker);
+    return;
   } else if (Array.isArray(value)) {
     const array = [];
     const currentArray = current && Array.isArray(current);
     if (normalizeIncomingArray(array, value, current, unwrapArray)) {
-      effect(() => (current = insertExpression(parent, array, current, marker, true)));
-      return () => current;
+      insertExpression(parent, array, undefined, marker, true);
+      return;
     }
     if (array.length === 0) {
       current = cleanChildren(parent, current, marker);
