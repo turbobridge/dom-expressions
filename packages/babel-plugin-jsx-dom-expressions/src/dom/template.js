@@ -56,7 +56,7 @@ export function appendTemplates(path, templates) {
       )
     );
   });
-  path.node.body.unshift(t.variableDeclaration("const", declarators));
+  path.node.body.unshift(t.variableDeclaration("var", declarators));
 }
 
 function registerTemplate(path, results) {
