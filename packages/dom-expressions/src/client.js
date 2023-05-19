@@ -320,3 +320,14 @@ function cleanChildren(parent, current, marker, replacement) {
   } else parent.insertBefore(node, marker);
   return [node];
 }
+
+export function createComponent(fn, props) {
+  if (fn.isClassComponent) {
+    const instance = new fn(props);
+    if (!fn.isSelfMount)
+      return instance.root;
+    else
+      return null;
+  }
+  return fn(props);
+}
