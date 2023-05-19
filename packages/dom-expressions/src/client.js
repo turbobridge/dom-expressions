@@ -66,26 +66,21 @@ export function classList(node, value, prev = {}) {
   return prev;
 }
 
-export function style(node, value, prev) {
-  if (!value) return prev ? setAttribute(node, "style") : value;
+export function style(node, value) {
+  if (!value) return;
   const nodeStyle = node.style;
-  if (typeof value === "string") return (nodeStyle.cssText = value);
-  typeof prev === "string" && (nodeStyle.cssText = prev = undefined);
-  prev || (prev = {});
-  value || (value = {});
-  let v, s;
-  for (s in prev) {
-    value[s] == null && nodeStyle.removeProperty(s);
-    delete prev[s];
+  if (typeof value === "string") {
+    nodeStyle.cssText = value;
+    return;
   }
+  if (typeof value !== "object")
+    return;
+
+  let v, s;
   for (s in value) {
     v = value[s];
-    if (v !== prev[s]) {
-      nodeStyle.setProperty(s, v);
-      prev[s] = v;
-    }
+    nodeStyle.setProperty(s, v);
   }
-  return prev;
 }
 
 export function spread(node, props = {}, isSVG, skipChildren) {
