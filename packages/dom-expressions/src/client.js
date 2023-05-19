@@ -212,12 +212,12 @@ function insertExpression(parent, value, marker, unwrapArray) {
     if (t === "number") value = value.toString();
     if (multi) {
       const node = document.createTextNode(value);
-      cleanChildren(parent, [], marker, node);
+      cleanChildren(parent, marker, node);
     } else {
       parent.textContent = value;
     }
   } else if (value == null || t === "boolean") {
-    cleanChildren(parent, [], marker);
+    cleanChildren(parent, marker);
   } else if (t === "function") {
     let v = value();
     while (typeof v === "function") v = v();
@@ -230,16 +230,16 @@ function insertExpression(parent, value, marker, unwrapArray) {
       return;
     }
     if (array.length === 0) {
-      cleanChildren(parent, [], marker);
+      cleanChildren(parent, marker);
       if (multi) return;
     } else {
       appendNodes(parent, array, marker);
     }
   } else if (value instanceof Node) {
     if (multi)
-      cleanChildren(parent, [], marker, value);
+      cleanChildren(parent, marker, value);
     else
-      cleanChildren(parent, [], null, value);
+      cleanChildren(parent, null, value);
   } else console.warn(`Unrecognized value. Skipped inserting`, value);
 }
 
@@ -280,22 +280,11 @@ function appendNodes(parent, array, marker = null) {
   for (let i = 0, len = array.length; i < len; i++) parent.insertBefore(array[i], marker);
 }
 
-function cleanChildren(parent, current, marker, replacement) {
+function cleanChildren(parent, marker, replacement) {
   if (marker === undefined) return (parent.textContent = "");
   const node = replacement || document.createTextNode("");
-  if (current.length) {
-    let inserted = false;
-    for (let i = current.length - 1; i >= 0; i--) {
-      const el = current[i];
-      if (node !== el) {
-        const isParent = el.parentNode === parent;
-        if (!inserted && !i)
-          isParent ? parent.replaceChild(node, el) : parent.insertBefore(node, marker);
-        else isParent && el.remove();
-      } else inserted = true;
-    }
-  } else parent.insertBefore(node, marker);
-  return [node];
+
+  parent.insertBefore(node, marker);
 }
 
 export function createComponent(fn, props) {
