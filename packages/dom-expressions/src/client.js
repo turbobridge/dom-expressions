@@ -28,7 +28,7 @@ export function template(html, isCE, isSVG) {
   // backwards compatible with older builds
   const fn = isCE
     ? () => (node || (node = create())).cloneNode(true)
-    : () => untrack(() => document.importNode(node || (node = create()), true));
+    : () => document.importNode(node || (node = create()), true);
   fn.cloneNode = fn;
   return fn;
 }
@@ -125,7 +125,7 @@ export function mergeProps(...sources) {
 }
 
 export function use(fn, element, arg) {
-  return untrack(() => fn(element, arg));
+  return fn(element, arg);
 }
 
 export function insert(parent, accessor, marker) {
