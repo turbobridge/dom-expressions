@@ -145,7 +145,7 @@ function toggleClassKey(node, key, value) {
 
 function assignProp(node, prop, value, prev, isSVG, skipRef) {
   let isCE, isProp, isChildProp, propAlias, forceProp;
-  if (prop === "style") return style(node, value, prev);
+  if (prop === "style") return style(node, value);
   if (prop === "classList") return classList(node, value, prev);
   if (value === prev) return prev;
   if (prop === "ref") {
