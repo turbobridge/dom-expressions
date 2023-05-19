@@ -202,16 +202,6 @@ function assignProp(node, prop, value, prev, isSVG, skipRef) {
 }
 
 function insertExpression(parent, value, current, marker, unwrapArray) {
-  if (sharedConfig.context) {
-    !current && (current = [...parent.childNodes]);
-    let cleaned = [];
-    for (let i = 0; i < current.length; i++) {
-      const node = current[i];
-      if (node.nodeType === 8 && node.data.slice(0, 2) === "!$") node.remove();
-      else cleaned.push(node);
-    }
-    current = cleaned;
-  }
   while (typeof current === "function") current = current();
   if (value === current) return current;
   const t = typeof value,
@@ -219,7 +209,6 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
   parent = (multi && current[0] && current[0].parentNode) || parent;
 
   if (t === "string" || t === "number") {
-    if (sharedConfig.context) return current;
     if (t === "number") value = value.toString();
     if (multi) {
       let node = current[0];
@@ -233,7 +222,6 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
       } else current = parent.textContent = value;
     }
   } else if (value == null || t === "boolean") {
-    if (sharedConfig.context) return current;
     current = cleanChildren(parent, current, marker);
   } else if (t === "function") {
     effect(() => {
@@ -249,12 +237,6 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
       effect(() => (current = insertExpression(parent, array, current, marker, true)));
       return () => current;
     }
-    if (sharedConfig.context) {
-      if (!array.length) return current;
-      for (let i = 0; i < array.length; i++) {
-        if (array[i].parentNode) return (current = array);
-      }
-    }
     if (array.length === 0) {
       current = cleanChildren(parent, current, marker);
       if (multi) return current;
@@ -268,7 +250,6 @@ function insertExpression(parent, value, current, marker, unwrapArray) {
     }
     current = array;
   } else if (value instanceof Node) {
-    if (sharedConfig.context && value.parentNode) return (current = multi ? [value] : value);
     if (Array.isArray(current)) {
       if (multi) return (current = cleanChildren(parent, current, marker, value));
       cleanChildren(parent, current, null, value);
