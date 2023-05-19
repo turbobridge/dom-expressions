@@ -25,12 +25,10 @@ export function template(html, isCE, isSVG) {
     t.innerHTML = html;
     return isSVG ? t.content.firstChild.firstChild : t.content.firstChild;
   };
-  // backwards compatible with older builds
-  const fn = isCE
+
+  return isCE
     ? () => (node || (node = create())).cloneNode(true)
     : () => document.importNode(node || (node = create()), true);
-  fn.cloneNode = fn;
-  return fn;
 }
 
 export function setAttribute(node, name, value) {
