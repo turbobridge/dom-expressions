@@ -116,19 +116,13 @@ export function insert(parent, accessor, marker) {
 
 export function assign(node, props, isSVG, skipChildren, prevProps = {}, skipRef = false) {
   props || (props = {});
-  for (const prop in prevProps) {
-    if (!(prop in props)) {
-      if (prop === "children") continue;
-      prevProps[prop] = assignProp(node, prop, null, prevProps[prop], isSVG, skipRef);
-    }
-  }
   for (const prop in props) {
     if (prop === "children") {
       if (!skipChildren) insertExpression(node, props.children);
       continue;
     }
     const value = props[prop];
-    prevProps[prop] = assignProp(node, prop, value, prevProps[prop], isSVG, skipRef);
+    assignProp(node, prop, value, undefined, isSVG, skipRef);
   }
 }
 
