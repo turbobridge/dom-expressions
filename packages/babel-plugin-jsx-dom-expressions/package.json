@@ -13,10 +13,10 @@
   "sideEffects": false,
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
-    "test": "pnpm run build && jest --no-cache",
-    "test:coverage": "pnpm run build && jest --coverage --no-cache",
-    "prepublishOnly": "pnpm run build",
-    "prepare": "pnpm run build"
+    "test": "npm run build && jest --no-cache",
+    "test:coverage": "npm run build && jest --coverage --no-cache",
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@babel/helper-module-imports": "7.18.6",
