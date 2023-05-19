@@ -4,19 +4,7 @@ import {
   Aliases,
   getPropAlias,
   SVGNamespace,
-  DelegatedEvents
 } from "./constants";
-import {
-  root,
-  effect,
-  memo,
-  getOwner,
-  createComponent,
-  sharedConfig,
-  untrack,
-  mergeProps
-} from "rxcore";
-import reconcileArrays from "./reconcile";
 
 export function template(html, isCE, isSVG) {
   let node;
